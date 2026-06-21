@@ -1,4 +1,4 @@
- const CACHE = 'eng-reader-v1';
+ const CACHE = 'eng-reader-v2';
  const FILES = ['index.html', 'manifest.json', 'icons/icon-192.png'];
  
  self.addEventListener('install', e => {
