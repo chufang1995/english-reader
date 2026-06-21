@@ -1,0 +1,1569 @@
+ <!DOCTYPE html>
+ <html lang="zh-CN">
+ <head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="English Reader">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon.svg">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+ <title>English Reader — 英文文章阅读器</title>
+ <style>
+ /* ==============================
+    CSS Variables & Reset
+    ============================== */
+ :root {
+   --bg: #f7f5f2;
+   --bg-card: #ffffff;
+   --bg-toolbar: #ffffff;
+   --text: #2c2c2c;
+   --text-secondary: #666;
+   --text-muted: #999;
+   --accent: #4a6cf7;
+   --accent-hover: #3b5de7;
+   --accent-light: #eef1ff;
+   --border: #e0ddd8;
+   --border-light: #f0eee8;
+   --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+   --shadow-md: 0 4px 16px rgba(0,0,0,0.1);
+   --shadow-lg: 0 8px 32px rgba(0,0,0,0.12);
+   --radius: 8px;
+   --radius-lg: 12px;
+   --font-base: 16px;
+   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+   --font-serif: Georgia, "Times New Roman", serif;
+   --toolbar-height: 56px;
+   --max-read-width: 780px;
+   --transition: 0.2s ease;
+ }
+ 
+ *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+ html { font-size: var(--font-base); }
+ body {
+   font-family: var(--font-sans);
+   background: var(--bg);
+   color: var(--text);
+   line-height: 1.6;
+   min-height: 100vh;
+   overflow-x: hidden;
+ }
+ button { cursor: pointer; font-family: inherit; font-size: inherit; border: none; background: none; }
+ input, textarea, select { font-family: inherit; font-size: inherit; }
+ 
+ /* Toolbar */
+ .toolbar {
+   position: fixed;
+   top: 0; left: 0; right: 0;
+   height: var(--toolbar-height);
+   background: var(--bg-toolbar);
+   border-bottom: 1px solid var(--border);
+   display: flex;
+   align-items: center;
+   justify-content: space-between;
+   padding: 0 20px;
+   z-index: 100;
+   box-shadow: var(--shadow-sm);
+ }
+ .toolbar-left { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 1.05rem; flex-shrink: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+ .toolbar-left .logo { font-size: 1.3rem; }
+ .toolbar-right { display: flex; align-items: center; gap: 4px; }
+ .toolbar-btn {
+   display: flex; flex-shrink: 0; align-items: center; gap: 6px; padding: 8px 14px;
+   border-radius: var(--radius); font-size: 0.9rem; color: var(--text-secondary);
+   transition: all var(--transition); position: relative;
+ }
+ .toolbar-btn:hover { background: var(--border-light); color: var(--text); }
+ .toolbar-btn:active { transform: scale(0.97); }
+ .toolbar-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+ .toolbar-btn:disabled:hover { background: none; color: var(--text-secondary); }
+ .toolbar-btn .btn-icon { font-size: 1.1rem; }
+ .toolbar-btn .btn-label { font-weight: 500; }
+ .toolbar-btn-active { background: var(--accent-light); color: var(--accent); }
+ .badge {
+   display: inline-flex; align-items: center; justify-content: center;
+   min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px;
+   background: var(--accent); color: #fff; font-size: 0.75rem; font-weight: 600;
+ }
+ 
+ /* Main Content */
+ .main-content {
+   padding-top: calc(var(--toolbar-height) + 24px);
+   padding-bottom: 60px; max-width: var(--max-read-width);
+   margin: 0 auto; min-height: 100vh;
+ }
+ .section { display: block; }
+ .hidden { display: none !important; }
+ 
+ /* Input Section */
+ .input-card {
+   background: var(--bg-card); border-radius: var(--radius-lg);
+   padding: 32px; box-shadow: var(--shadow-sm); border: 1px solid var(--border);
+ }
+ .input-title { font-size: 1.3rem; font-weight: 700; margin-bottom: 6px; }
+ .input-hint { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px; }
+ .article-input {
+   width: 100%; min-height: 280px; padding: 16px;
+   border: 2px solid var(--border); border-radius: var(--radius);
+   resize: vertical; font-size: 1rem; line-height: 1.7;
+   color: var(--text); background: #fcfcfa; transition: border-color var(--transition);
+ }
+ .article-input:focus { outline: none; border-color: var(--accent); background: #fff; }
+ .article-input::placeholder { color: #bbb; }
+ .btn-primary {
+   display: inline-flex; align-items: center; gap: 8px; padding: 12px 28px;
+   background: var(--accent); color: #fff; border-radius: var(--radius);
+   font-weight: 600; font-size: 1rem; transition: all var(--transition); margin-top: 16px;
+ }
+ .btn-primary:hover { background: var(--accent-hover); }
+ .btn-primary:active { transform: scale(0.97); }
+ .btn-secondary {
+   display: inline-flex; align-items: center; gap: 6px; padding: 8px 18px;
+   background: var(--border-light); color: var(--text-secondary);
+   border-radius: var(--radius); font-weight: 500; font-size: 0.9rem; transition: all var(--transition);
+ }
+ .btn-secondary:hover { background: var(--border); color: var(--text); }
+ .btn-danger {
+   display: inline-flex; align-items: center; gap: 6px; padding: 8px 18px;
+   background: #fee; color: #c0392b; border-radius: var(--radius);
+   font-weight: 500; font-size: 0.9rem; transition: all var(--transition);
+ }
+ .btn-danger:hover { background: #fdd; }
+ 
+ /* Reader Section */
+ .reader-section { padding-top: 4px; }
+ .reader-toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
+ .article-content {
+   background: var(--bg-card); border-radius: var(--radius-lg);
+   padding: 40px 44px; box-shadow: var(--shadow-sm); border: 1px solid var(--border);
+   font-family: var(--font-serif); font-size: 1rem; line-height: 2; word-spacing: 0.5px;
+ }
+ .article-content .paragraph { margin-bottom: 1.4em; }
+ .article-content .paragraph:last-child { margin-bottom: 0; }
+ .article-content .sentence-block { display: inline; }
+ .article-content .sentence-translation {
+   display: block; color: var(--text-secondary); font-family: var(--font-sans);
+   font-size: 0.9rem; line-height: 1.5; margin-bottom: 0.5em;
+   padding-left: 12px; border-left: 3px solid var(--accent-light); opacity: 0.85;
+ }
+ .article-content .word-token {
+   cursor: pointer; border-bottom: 2px solid transparent;
+   transition: all 0.15s ease; position: relative; padding: 0 1px; border-radius: 2px;
+ }
+ .article-content .word-token:hover { background: var(--accent-light); border-bottom-color: var(--accent); }
+ .article-content .word-token--active { background: #d4dcff; border-bottom-color: var(--accent); }
+ .article-content .word-token--saved::after {
+   content: "★"; font-size: 0.55em; vertical-align: super;
+   color: #f39c12; margin-left: 1px; position: relative; top: -0.15em;
+ }
+ .article-content .token-space { white-space: pre-wrap; }
+ 
+ /* Word Popover */
+ .word-popover {
+   position: absolute; z-index: 400;
+   background: var(--bg-card); border-radius: var(--radius-lg);
+   box-shadow: var(--shadow-lg); border: 1px solid var(--border);
+   width: 340px; max-width: 90vw;
+   animation: popoverIn 0.15s ease;
+ }
+ @keyframes popoverIn {
+   from { opacity: 0; transform: translateY(4px) scale(0.97); }
+   to   { opacity: 1; transform: translateY(0) scale(1); }
+ }
+ .popover-arrow {
+   position: absolute; width: 12px; height: 12px;
+   background: var(--bg-card); border-left: 1px solid var(--border);
+   border-top: 1px solid var(--border); transform: rotate(45deg);
+   top: -7px; z-index: -1;
+ }
+ .popover-header { display: flex; align-items: center; padding: 14px 16px 8px; gap: 10px; }
+ .popover-word { font-weight: 700; font-size: 1.15rem; }
+ .popover-phonetic { color: var(--text-muted); font-size: 0.85rem; font-family: var(--font-sans); }
+ .popover-close {
+   margin-left: auto; width: 24px; height: 24px; display: flex;
+   align-items: center; justify-content: center; border-radius: 50%;
+   color: var(--text-muted); font-size: 0.85rem; transition: all var(--transition);
+ }
+ .popover-close:hover { background: var(--border-light); color: var(--text); }
+ .popover-body { padding: 4px 16px 12px; }
+ .popover-section { margin-top: 10px; }
+ .popover-label {
+   display: block; font-size: 0.75rem; font-weight: 600;
+   text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 3px;
+ }
+ .popover-translation { font-size: 1rem; color: var(--accent); font-weight: 600; }
+ .popover-example { font-size: 0.9rem; color: var(--text-secondary); font-style: italic; line-height: 1.5; }
+ .popover-footer { display: flex; align-items: center; gap: 10px; padding: 8px 16px 14px; border-top: 1px solid var(--border-light); padding-top: 12px; }
+ .speak-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: 50%;
+  cursor: pointer; background: transparent; border: none;
+  font-size: 1rem; transition: all 0.15s ease; flex-shrink: 0;
+  vertical-align: middle;
+}
+.speak-btn:hover { background: var(--accent-light); transform: scale(1.1); }
+.speak-btn:active { transform: scale(0.95); }
+.speak-btn--sentence, .trans-btn--sentence {
+  display: inline-flex; vertical-align: middle; margin-left: 4px;
+  width: 22px; height: 22px; font-size: 0.8rem;
+  opacity: 0.3; transition: opacity 0.15s ease;
+}
+.sentence-block:hover .speak-btn--sentence, .trans-btn--sentence { opacity: 0.8; }
+.speak-btn--vocab { width: 24px; height: 24px; font-size: 0.85rem; margin-right: 2px; }
+ .btn-save-word {
+   display: inline-flex; align-items: center; gap: 6px; padding: 6px 16px;
+   background: var(--accent-light); color: var(--accent); border-radius: 20px;
+   font-weight: 600; font-size: 0.85rem; transition: all var(--transition);
+ }
+ .btn-save-word:hover { background: #dce3ff; }
+ .btn-save-word--saved { background: #fef5e7; color: #e67e22; }
+ .popover-status { font-size: 0.8rem; color: var(--text-muted); }
+ 
+ /* Overlay / Sidebar */
+ .overlay {
+   position: fixed; inset: 0; z-index: 300;
+   background: rgba(0,0,0,0.35); backdrop-filter: blur(4px);
+   -webkit-backdrop-filter: blur(4px); animation: overlayIn 0.2s ease;
+ }
+ @keyframes overlayIn { from { opacity: 0; } to { opacity: 1; } }
+ .sidebar {
+   position: fixed; top: 0; right: 0; bottom: 0;
+   width: 400px; max-width: 90vw; background: var(--bg-card);
+   box-shadow: -4px 0 24px rgba(0,0,0,0.12);
+   display: flex; flex-direction: column; animation: sidebarIn 0.25s ease;
+ }
+ @keyframes sidebarIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+ .sidebar-header { display: flex; align-items: center; padding: 18px 20px; gap: 10px; border-bottom: 1px solid var(--border-light); flex-shrink: 0; }
+ .sidebar-header h2 { font-size: 1.1rem; font-weight: 700; flex: 1; }
+ .sidebar-count { background: var(--accent-light); color: var(--accent); padding: 2px 10px; border-radius: 12px; font-size: 0.85rem; font-weight: 600; }
+ .sidebar-close { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 50%; color: var(--text-muted); font-size: 1rem; transition: all var(--transition); }
+ .sidebar-close:hover { background: var(--border-light); color: var(--text); }
+ .sidebar-search { padding: 12px 20px; flex-shrink: 0; }
+ .sidebar-search input { width: 100%; padding: 10px 14px; border: 2px solid var(--border); border-radius: var(--radius); font-size: 0.9rem; transition: border-color var(--transition); }
+ .sidebar-search input:focus { outline: none; border-color: var(--accent); }
+ .sidebar-body { flex: 1; overflow-y: auto; padding: 0 20px 16px; }
+ .vocab-empty { text-align: center; color: var(--text-muted); padding: 60px 20px; font-size: 0.9rem; }
+ .vocab-empty .vocab-empty-icon { font-size: 2.5rem; margin-bottom: 12px; display: block; }
+ .vocab-item { padding: 14px 16px; border: 1px solid var(--border-light); border-radius: var(--radius); margin-top: 10px; transition: all var(--transition); }
+ .vocab-item:hover { border-color: var(--border); box-shadow: var(--shadow-sm); }
+ .vocab-item-top { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+ .vocab-item-word { font-weight: 700; font-size: 1rem; }
+ .vocab-item-phonetic { color: var(--text-muted); font-size: 0.85rem; }
+ .vocab-item-translation { color: var(--accent); font-weight: 600; font-size: 0.9rem; margin-left: auto; }
+ .vocab-item-delete { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 50%; color: var(--text-muted); font-size: 0.9rem; opacity: 0; transition: all var(--transition); flex-shrink: 0; }
+ .vocab-item:hover .vocab-item-delete { opacity: 1; }
+ .vocab-item-delete:hover { background: #fee; color: #c0392b; }
+ .vocab-item-context { font-size: 0.85rem; color: var(--text-muted); font-style: italic; line-height: 1.4; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+ .vocab-item-date { font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; }
+ .sidebar-footer { display: flex; gap: 10px; padding: 14px 20px; border-top: 1px solid var(--border-light); flex-shrink: 0; }
+ .sidebar-footer .btn-secondary, .sidebar-footer .btn-danger { flex: 1; justify-content: center; }
+ 
+ /* Settings Modal */
+ .modal {
+   position: fixed; top: 50%; left: 50%;
+   transform: translate(-50%, -50%);
+   background: var(--bg-card); border-radius: var(--radius-lg);
+   box-shadow: var(--shadow-lg); width: 460px; max-width: 90vw;
+   max-height: 85vh; display: flex; flex-direction: column;
+   animation: modalIn 0.2s ease;
+ }
+ @keyframes modalIn {
+   from { opacity: 0; transform: translate(-50%, -48%) scale(0.97); }
+   to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+ }
+ .modal-header { display: flex; align-items: center; padding: 20px 24px 16px; border-bottom: 1px solid var(--border-light); flex-shrink: 0; }
+ .modal-header h2 { font-size: 1.15rem; font-weight: 700; flex: 1; }
+ .modal-close { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 50%; color: var(--text-muted); font-size: 1rem; transition: all var(--transition); }
+ .modal-close:hover { background: var(--border-light); color: var(--text); }
+ .modal-body { padding: 20px 24px; overflow-y: auto; flex: 1; }
+ .setting-section { margin-bottom: 24px; }
+ .setting-section h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 4px; }
+ .setting-hint { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 14px; }
+ .form-group { margin-bottom: 14px; }
+ .form-group label { display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 5px; }
+ .form-group input[type="text"], .form-group input[type="password"], .form-group select {
+   width: 100%; padding: 10px 14px; border: 2px solid var(--border);
+   border-radius: var(--radius); font-size: 0.9rem; transition: border-color var(--transition);
+ }
+ .form-group input:focus, .form-group select:focus { outline: none; border-color: var(--accent); }
+ .form-group input[type="range"] { width: 100%; margin-top: 6px; accent-color: var(--accent); }
+ .form-actions { display: flex; align-items: center; gap: 12px; margin-top: 4px; }
+ .api-status { font-size: 0.85rem; padding: 4px 10px; border-radius: 4px; }
+ .api-status--success { color: #27ae60; background: #eafaf1; }
+ .api-status--error { color: #e74c3c; background: #fdedec; }
+ .api-status--pending { color: var(--text-muted); font-style: italic; }
+ .modal-footer { display: flex; justify-content: flex-end; padding: 14px 24px 20px; border-top: 1px solid var(--border-light); flex-shrink: 0; }
+ 
+ /* Notifications */
+ .notification {
+   position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+   background: var(--text); color: #fff; padding: 12px 24px;
+   border-radius: var(--radius); font-size: 0.9rem; z-index: 500;
+   box-shadow: var(--shadow-md); animation: notifIn 0.25s ease;
+ }
+ @keyframes notifIn { from { opacity: 0; transform: translateX(-50%) translateY(12px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+ 
+ /* Responsive */
+ @media (max-width: 600px) {
+  .toolbar { padding: 0 12px; }
+  .toolbar-btn { padding: 4px 8px; }
+  .toolbar-btn .btn-label { display: none; }
+  .input-card { padding: 20px; border-radius: 0; }
+   .article-content { padding: 24px 20px; border-radius: 0; }
+  .reader-toolbar { padding: 0 16px; }
+   .sidebar { max-width: 100vw; }
+   .modal { max-width: 95vw; }
+ }
+ 
+ /* Loading */
+ .loading-spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.6s linear infinite; vertical-align: middle; }
+ @keyframes spin { to { transform: rotate(360deg); } }
+ </style>
+ </head>
+ <body>
+ 
+ <!-- Toolbar -->
+ <header class="toolbar" id="toolbar">
+   <div class="toolbar-left">
+     <span class="logo">📖</span>
+     <span class="app-name">文章翻译器</span>
+   </div>
+   <div class="toolbar-right">
+     <button id="btn-translate" class="toolbar-btn" title="整篇翻译，需配置有道智云 API">
+       <span class="btn-icon">🌐</span>
+       <span class="btn-label">翻译</span>
+     </button>
+     <button id="btn-vocab" class="toolbar-btn" title="生词本">
+       <span class="btn-icon">📖</span>
+       <span class="btn-label">生词本</span>
+       <span class="badge" id="vocab-badge">0</span>
+     </button>
+     <button id="btn-settings" class="toolbar-btn" title="设置">
+       <span class="btn-icon">⚙</span>
+       <span class="btn-label">设置</span>
+     </button>
+     <button id="btn-articles" class="toolbar-btn" title="文章管理">
+       <span class="btn-icon">📚</span>
+       <span class="btn-label">文章</span>
+     </button>
+   </div>
+ </header>
+ 
+ <!-- Main Content -->
+ <main class="main-content" id="main-content">
+   <!-- Input Section -->
+   <section id="input-section" class="section">
+     <div class="input-card">
+       <h2 class="input-title">Paste English Article</h2>
+       <p class="input-hint">将英文文章粘贴到下方，点击"开始阅读"进入阅读模式</p>
+       <textarea id="article-input" class="article-input" placeholder="Paste your English article here...&#10;&#10;You can paste any English text — news, essays, stories — and read it word by word."></textarea>
+       <br>
+       <button id="btn-start" class="btn-primary">📖 开始阅读</button>
+       <button id="btn-clear-input" class="btn-secondary" style="margin-left:8px">🗑 清空</button>
+       <span style="margin-left:12px;color:var(--text-muted);font-size:0.82rem;">或按 Ctrl+Enter</span>
+     </div>
+   </section>
+ 
+   <!-- Reader Section -->
+   <section id="reader-section" class="section reader-section hidden">
+     <div class="reader-toolbar">
+       <button id="btn-new-article" class="btn-secondary">✏️ 新文章</button>
+      <button id="btn-save-article" class="btn-secondary">💾 保存文章</button>
+       <span id="reader-info" style="font-size:0.85rem;color:var(--text-muted);margin-left:auto;"></span>
+     </div>
+     <div id="article-content" class="article-content"></div>
+   </section>
+ </main>
+ 
+ <!-- Word Popover -->
+ <div id="word-popover" class="word-popover hidden">
+   <div class="popover-arrow" id="popover-arrow"></div>
+   <div class="popover-header">
+     <span class="popover-word" id="popover-word"></span>
+     <button class="speak-btn" id="popover-speak" title="朗读发音">🔊</button>
+     <span class="popover-phonetic" id="popover-phonetic"></span>
+     <button class="popover-close" id="popover-close">✕</button>
+   </div>
+   <div class="popover-body">
+     <div class="popover-section" id="popover-section-trans">
+       <span class="popover-label">中文翻译</span>
+       <div class="popover-translation" id="popover-translation"></div>
+     </div>
+     <div class="popover-section" id="popover-section-example">
+       <span class="popover-label">例句</span>
+       <div class="popover-example" id="popover-example"></div>
+     </div>
+   </div>
+   <div class="popover-footer">
+     <button id="btn-save-word" class="btn-save-word">💾 收藏单词</button>
+     <span class="popover-status" id="popover-status"></span>
+   </div>
+ </div>
+ 
+ <!-- Vocabulary Sidebar -->
+ <div id="vocab-overlay" class="overlay hidden">
+   <aside class="sidebar" id="vocab-sidebar">
+     <div class="sidebar-header">
+       <h2>📖 生词本</h2>
+       <span class="sidebar-count" id="vocab-count">0</span>
+       <button class="sidebar-close" id="vocab-close">✕</button>
+     </div>
+     <div class="sidebar-search">
+       <input type="text" id="vocab-search" placeholder="搜索单词..." spellcheck="false">
+     </div>
+     <div class="sidebar-body" id="vocab-list">
+       <div class="vocab-empty">
+         <span class="vocab-empty-icon">📭</span>
+         还没有收藏任何单词<br>阅读文章时点击单词即可查看详情和翻译
+       </div>
+     </div>
+     <div class="sidebar-footer">
+       <button id="btn-export" class="btn-secondary">📤 导出 TXT</button>
+       <button id="btn-clear-all" class="btn-danger">🗑 清空全部</button>
+     </div>
+   </aside>
+</div>
+
+<!-- Article Manager Sidebar -->
+<div id="articles-overlay" class="overlay hidden">
+  <aside class="sidebar" id="articles-sidebar">
+    <div class="sidebar-header">
+      <h2>📚 文章管理</h2>
+      <span class="sidebar-count" id="article-count">0</span>
+      <button class="sidebar-close" id="articles-close">✕</button>
+    </div>
+    <div class="sidebar-body" id="article-list">
+      <div class="vocab-empty">
+        <span class="vocab-empty-icon">📭</span>
+        还没有保存任何文章<br>阅读时点击保存即可收藏
+      </div>
+    </div>
+  </aside>
+</div>
+ 
+ <!-- Settings Modal -->
+ <div id="settings-overlay" class="overlay hidden">
+   <div class="modal" id="settings-modal">
+     <div class="modal-header">
+       <h2>⚙ 设置</h2>
+       <button class="modal-close" id="settings-close">✕</button>
+     </div>
+     <div class="modal-body">
+       <div class="setting-section">
+         <h3>🔑 有道智云 API 配置</h3>
+         <p class="setting-hint">
+           可选升级。默认使用 MyMemory 免费翻译服务，配置后切换为有道智云（翻译质量更高）。
+           前往 <a href="https://ai.youdao.com" target="_blank" style="color:var(--accent)">ai.youdao.com</a>
+           注册 → 创建应用（文本翻译服务）→ 获取 AppKey 和 AppSecret。
+         </p>
+         <div class="form-group">
+           <label for="youdao-appkey">AppKey</label>
+           <input type="password" id="youdao-appkey" placeholder="输入有道智云 AppKey" spellcheck="false">
+         </div>
+         <div class="form-group">
+           <label for="youdao-secret">AppSecret</label>
+           <input type="password" id="youdao-secret" placeholder="输入有道智云 AppSecret" spellcheck="false">
+         </div>
+         <div class="form-actions">
+           <button id="btn-test-api" class="btn-secondary">🔄 测试连接</button>
+           <span id="api-status" class="api-status"></span>
+         </div>
+       </div>
+       <div class="setting-section">
+       <div class="setting-section">
+         <h3>🤖 AI 大模型翻译</h3>
+         <p class="setting-hint">
+           可选升级。默认 DeepSeek（约 100 万次查询仅需 1 元）。
+           获取 Key：<a href="https://platform.deepseek.com/api_keys" target="_blank" style="color:var(--accent)">DeepSeek</a> ｜ <a href="https://platform.openai.com/api-keys" target="_blank" style="color:var(--accent)">OpenAI</a>
+         </p>
+         <div class="form-group">
+           <label for="ai-provider">AI 提供商</label>
+           <select id="ai-provider">
+             <option value="deepseek">DeepSeek（推荐）</option>
+             <option value="openai">OpenAI</option>
+           </select>
+         </div>
+         <div class="form-group">
+           <label for="openai-key">API Key</label>
+           <input type="password" id="openai-key" placeholder="sk-..." spellcheck="false">
+         </div>
+         <div class="form-group">
+           <label for="openai-model">模型</label>
+           <select id="openai-model">
+             <option value="deepseek-chat">DeepSeek V3</option>
+             <option value="deepseek-reasoner">DeepSeek R1</option>
+             <option value="gpt-4o-mini">GPT-4o Mini</option>
+             <option value="gpt-4o">GPT-4o</option>
+           </select>
+         </div>
+         <div class="form-actions">
+           <button id="btn-test-openai" class="btn-secondary">🔄 测试连接</button>
+           <span id="openai-status" class="api-status"></span>
+         </div>
+       </div>
+         <h3>📐 阅读偏好</h3>
+         <div class="form-group">
+           <label for="target-lang">翻译目标语言</label>
+           <select id="target-lang">
+             <option value="zh-CHS">简体中文</option>
+             <option value="zh-CHT">繁體中文</option>
+             <option value="ja">日语</option>
+             <option value="en">英语</option>
+           </select>
+         </div>
+         <div class="form-group">
+           <label>正文字号：<span id="font-size-label">16px</span></label>
+           <input type="range" id="font-size-range" min="14" max="22" value="16" step="1">
+         </div>
+       </div>
+     </div>
+     <div class="modal-footer">
+       <button id="btn-save-settings" class="btn-primary">💾 保存设置</button>
+     </div>
+   </div>
+ </div>
+ 
+ <script>
+ /* ========================================================
+    1. State & Configuration
+    ======================================================== */
+ const STATE = {
+   article: null,
+   sentences: [],
+   currentWord: null,
+   translateActive: false,
+ };
+ 
+ const STORAGE_KEYS = {
+   vocab: 'reader_vocab',
+   config: 'reader_config',
+   transCache: 'reader_trans_cache',
+ };
+ 
+ const DEFAULT_CONFIG = {
+   youdaoAppKey: '',
+   youdaoSecret: '',
+   openaiKey: '',
+   openaiModel: 'deepseek-chat',
+   aiProvider: 'deepseek',
+   targetLang: 'zh-CHS',
+   fontSize: 16,
+ };
+ 
+ function loadConfig() {
+   try {
+     const raw = localStorage.getItem(STORAGE_KEYS.config);
+     if (raw) return { ...DEFAULT_CONFIG, ...JSON.parse(raw) };
+   } catch (_) {}
+   return { ...DEFAULT_CONFIG };
+ }
+ 
+ function saveConfig(config) {
+   localStorage.setItem(STORAGE_KEYS.config, JSON.stringify(config));
+ }
+ 
+ const CONFIG = loadConfig();
+ 
+ function isYoudaoConfigured() {
+   return CONFIG.youdaoAppKey.trim() && CONFIG.youdaoSecret.trim();
+ }
+
+function isOpenAIConfigured() {
+  return CONFIG.openaiKey.trim().startsWith('sk-');
+}
+
+async function openaiCall(systemPrompt, userPrompt, maxTokens) {
+  const key = CONFIG.openaiKey.trim();
+  const model = CONFIG.openaiModel || 'deepseek-chat';
+  const provider = CONFIG.aiProvider || 'deepseek';
+  const endpoint = provider === 'openai'
+    ? 'https://api.openai.com/v1/chat/completions'
+    : 'https://api.deepseek.com/v1/chat/completions';
+  try {
+    const resp = await fetch(endpoint, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key},
+      body: JSON.stringify({model, temperature: 0.3, max_tokens: maxTokens,
+        messages: [{role:'system',content:systemPrompt},{role:'user',content:userPrompt}]}),
+    });
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    return data.choices?.[0]?.message?.content?.trim() || null;
+  } catch (_) { return null; }
+}
+
+async function openaiWordLookup(word) {
+  if (!isOpenAIConfigured()) return null;
+  const result = await openaiCall(
+    'You are an English-Chinese dictionary. Return ONLY valid JSON, no markdown.',
+    `For word "${word}" return JSON: translation, phonetic, explanation, example, exampleTranslation`, 400);
+  if (!result) return null;
+  let js = result;
+  const m1 = result.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (m1) js = m1[1];
+  const m2 = result.match(/\{[\s\S]*\}/);
+  if (m2) js = m2[0];
+  try {
+    const d = JSON.parse(js);
+    const ex = d.example || '';
+    const et = d.exampleTranslation || '';
+    return {word, phonetic: d.phonetic||'', translation: d.explanation||d.translation||'',
+      definitions: [], example: ex + (et ? '\n' + et : ''), source: 'openai'};
+  } catch (_) { return null; }
+}
+
+async function openaiTranslate(text) {
+  if (!isOpenAIConfigured()) return null;
+  return await openaiCall(
+    'Professional English-Chinese translator. Return only the translation.',
+    text, 500);
+}
+ 
+ /* ========================================================
+    2. Utility Helpers
+    ======================================================== */
+ function $(sel) { return document.querySelector(sel); }
+ function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+ function formatDate(ts) {
+   const d = new Date(ts);
+   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+ }
+ 
+ function showNotification(msg, duration = 2200) {
+   const existing = document.querySelector('.notification');
+   if (existing) existing.remove();
+   const el = document.createElement('div');
+   el.className = 'notification';
+   el.textContent = msg;
+   document.body.appendChild(el);
+   setTimeout(() => el.remove(), duration);
+ }
+ 
+function speakText(text, lang) {
+  if (lang === undefined) lang = 'en-US';
+  if (!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  var u = new SpeechSynthesisUtterance(text);
+  u.lang = lang;
+  u.rate = 0.85;
+  speechSynthesis.speak(u);
+}
+
+ function simpleHash(str) {
+   let h = 0;
+   for (let i = 0; i < str.length; i++) { h = ((h << 5) - h) + str.charCodeAt(i); h |= 0; }
+   return Math.abs(h).toString(36);
+ }
+ 
+ function escapeHtml(str) {
+   const div = document.createElement('div');
+   div.textContent = str;
+   return div.innerHTML;
+ }
+ 
+ /* ========================================================
+    3. Tokenizer & Sentence Splitter
+    ======================================================== */
+ function tokenize(text) {
+   const tokens = [];
+   let i = 0;
+   while (i < text.length) {
+     const wordMatch = text.slice(i).match(/^([a-zA-Z]+(?:[''´][a-zA-Z]+)*(?:-?[a-zA-Z]+)*)/);
+     if (wordMatch) {
+       tokens.push({ type: 'word', text: wordMatch[1] });
+       i += wordMatch[1].length;
+       continue;
+     }
+     if (/^\s/.test(text[i])) {
+       let ws = '';
+       while (i < text.length && /\s/.test(text[i])) { ws += text[i]; i++; }
+       tokens.push({ type: 'space', text: ws });
+       continue;
+     }
+     tokens.push({ type: 'punct', text: text[i] });
+     i++;
+   }
+   return tokens;
+ }
+ 
+ function splitSentences(text) {
+   const ABBREV = new Set([
+     'mr','mrs','ms','dr','prof','sr','jr','st','ave','blvd','dept','est','vol',
+     'inc','ltd','co','corp','jan','feb','mar','apr','jun','jul','aug','sep','oct','nov','dec',
+     'vs','etc','fig','e.g','i.e','al','no','approx','govt','incl'
+   ]);
+   const sentences = [];
+   let cur = '';
+   for (let i = 0; i < text.length; i++) {
+     cur += text[i];
+     if (/[.!?]/.test(text[i])) {
+       const wordBefore = cur.slice(0, -1).match(/\b([a-zA-Z]+)\.$/);
+       if (wordBefore && ABBREV.has(wordBefore[1].toLowerCase())) continue;
+       const rest = text.slice(i + 1).replace(/^["')\]\s]+/, '');
+       if (rest.length === 0 || /^[A-Z"'(]/.test(rest) || rest.startsWith('"') || rest.startsWith('\u201c')) {
+         sentences.push(cur.trim());
+         cur = '';
+       }
+     }
+   }
+   if (cur.trim()) sentences.push(cur.trim());
+   return sentences;
+ }
+ 
+ /* ========================================================
+    4. API Layer
+    ======================================================== */
+ const WORD_CACHE = new Map();
+ const CACHE_TTL = 30_000;
+ 
+ async function fetchWordDefinition(word) {
+   const cached = WORD_CACHE.get(word);
+   if (cached && Date.now() - cached.ts < CACHE_TTL) return cached.data;
+ 
+  // Try OpenAI first
+  if (isOpenAIConfigured()) {
+    try {
+      const r = await openaiWordLookup(word);
+      if (r) { WORD_CACHE.set(word, {data:r, ts:Date.now()}); return r; }
+    } catch (_) {}
+  }
+
+   // Try Youdao first
+   if (isYoudaoConfigured()) {
+     try {
+       const result = await youdaoWordLookup(word);
+       if (result) { WORD_CACHE.set(word, { data: result, ts: Date.now() }); return result; }
+    } catch (_) {}
+  }
+
+  // Fetch English definition from Free Dictionary API
+  let phonetic = '', definitions = [];
+  try {
+    const resp = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word.toLowerCase())}`);
+    if (!resp.ok) throw new Error('Not found');
+    const data = await resp.json();
+    const entry = data[0];
+    phonetic = entry.phonetic || (entry.phonetics?.[0]?.text) || '';
+    definitions = (entry.meanings || []).map(m => ({
+      partOfSpeech: m.partOfSpeech,
+      definition: m.definitions[0]?.definition || '',
+      example: m.definitions[0]?.example || '',
+    }));
+  } catch (err) {
+    // Dictionary API failed; continue with whatever we have
+  }
+
+  // Fetch Chinese translation from MyMemory (free, no key needed)
+  let translation = '';
+  try {
+    const t = await mymemoryTranslate(word);
+    if (t) translation = t;
+  } catch (_) {}
+
+  const result = { word, phonetic, translation, definitions, source: translation ? 'combined' : 'dictionaryapi' };
+  WORD_CACHE.set(word, { data: result, ts: Date.now() });
+  return result;
+}
+ 
+ async function sha256Hex(str) {
+   const encoder = new TextEncoder();
+   const data = encoder.encode(str);
+   const hash = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+ /* Language code mapping (Youdao -> MyMemory) */
+ function mapTargetLang(code) {
+   return { 'zh-CHS': 'zh-CN', 'zh-CHT': 'zh-TW', 'ja': 'ja', 'en': 'en' }[code] || 'zh-CN';
+ }
+ 
+ /* MyMemory Translation API (free, no key required) */
+ async function mymemoryTranslate(text, from = 'en', to) {
+   const targetLang = mapTargetLang(to || CONFIG.targetLang);
+   const langpair = `${from}|${targetLang}`;
+   try {
+     const resp = await fetch(
+       `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text.slice(0, 500))}&langpair=${encodeURIComponent(langpair)}`
+     );
+     if (!resp.ok) return null;
+     const data = await resp.json();
+     if (data.responseStatus === 200 && data.responseData?.translatedText) {
+       return data.responseData.translatedText;
+     }
+     return null;
+   } catch (_) { return null; }
+ }
+ 
+ async function youdaoRawTranslate(text, from = 'en', to) {
+   const appKey = CONFIG.youdaoAppKey.trim();
+   const appSecret = CONFIG.youdaoSecret.trim();
+  CONFIG.openaiModel = document.getElementById('openai-model').value;
+  CONFIG.aiProvider = document.getElementById('ai-provider').value;
+   if (!appKey || !appSecret) return null;
+   const toLang = to || CONFIG.targetLang;
+   const salt = Date.now().toString();
+   const curtime = Math.floor(Date.now() / 1000).toString();
+   const input = text.length > 20 ? text.slice(0, 20) : text;
+   const signStr = appKey + input + salt + curtime + appSecret;
+   const sign = await sha256Hex(signStr);
+   const params = new URLSearchParams({
+     q: text, from, to: toLang, appKey, salt, sign, signType: 'v3', curtime,
+   });
+   const resp = await fetch('https://openapi.youdao.com/api', {
+     method: 'POST',
+     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+     body: params,
+   });
+   if (!resp.ok) return null;
+   const data = await resp.json();
+   if (data.errorCode !== '0') return null;
+   return data;
+ }
+ 
+ async function youdaoWordLookup(word) {
+   const data = await youdaoRawTranslate(word, 'en', CONFIG.targetLang);
+   if (!data) return null;
+   const translation = data.translation?.[0] || '';
+   const phonetic = data.basic?.phonetic || data.basic?.['us-phonetic'] || '';
+   const explains = data.basic?.explains || [];
+   const definitions = explains.slice(0, 3).map(e => ({ partOfSpeech: '', definition: e, example: '' }));
+   return { word, phonetic, translation, definitions, source: 'youdao' };
+ }
+ 
+ async function youdaoTranslateSentence(text) {
+   const data = await youdaoRawTranslate(text, 'en', CONFIG.targetLang);
+   if (!data) return null;
+   return data.translation?.[0] || null;
+ }
+ 
+ /* Translation Cache */
+ function getTransCache() {
+   try { return JSON.parse(localStorage.getItem(STORAGE_KEYS.transCache)) || {}; } catch (_) { return {}; }
+ }
+ 
+ function setTransCache(key, value) {
+   const cache = getTransCache();
+   cache[key] = { value, ts: Date.now() };
+   const now = Date.now();
+   for (const k of Object.keys(cache)) { if (now - cache[k].ts > 86400000) delete cache[k]; }
+   localStorage.setItem(STORAGE_KEYS.transCache, JSON.stringify(cache));
+ }
+ 
+ function getCachedTranslation(text) {
+   const key = 't_' + simpleHash(text);
+   const cache = getTransCache();
+   const entry = cache[key];
+   if (entry && Date.now() - entry.ts < 86400000) return entry.value;
+   return null;
+ }
+ 
+async function translateSentence(text) {
+  const cached = getCachedTranslation(text);
+  if (cached) return cached;
+  // Try OpenAI first if configured
+  if (isOpenAIConfigured()) {
+    const t = await openaiTranslate(text);
+    if (t) { setTransCache('t_' + simpleHash(text), t); return t; }
+  }
+
+  // Try Youdao first if configured
+  if (isYoudaoConfigured()) {
+    const t = await youdaoTranslateSentence(text);
+    if (t) { setTransCache('t_' + simpleHash(text), t); return t; }
+  }
+  // Fallback: MyMemory (free)
+  const t = await mymemoryTranslate(text);
+  if (t) { setTransCache('t_' + simpleHash(text), t); return t; }
+  return null;
+}
+ 
+ /* ========================================================
+    5. Popover Manager
+    ======================================================== */
+ const popover = {
+   el: null, currentWord: null, currentText: '', isVisible: false,
+ 
+   init() {
+     this.el = document.getElementById('word-popover');
+     document.getElementById('popover-close').addEventListener('click', () => this.hide());
+     document.getElementById('btn-save-word').addEventListener('click', () => this.toggleSave());
+     document.addEventListener('click', (e) => {
+       if (this.isVisible && !this.el.contains(e.target) && e.target.closest('.word-token') !== this.currentWord)
+         this.hide();
+     });
+     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && this.isVisible) this.hide(); });
+   },
+ 
+   async show(wordEl, word) {
+     if (this.isVisible && this.currentWord === wordEl) { this.hide(); return; }
+     this.currentWord = wordEl;
+     this.currentText = word;
+     this.isVisible = true;
+ 
+     document.getElementById('popover-word').textContent = word;
+     document.getElementById('popover-phonetic').textContent = '';
+     document.getElementById('popover-translation').textContent = '加载中...';
+     document.getElementById('popover-example').textContent = '';
+     document.getElementById('popover-section-trans').style.display = 'block';
+     document.getElementById('popover-section-example').style.display = 'none';
+     document.getElementById('popover-speak').onclick = function() { speakText(word); };
+     const saveBtn = document.getElementById('btn-save-word');
+     saveBtn.className = 'btn-save-word';
+     saveBtn.textContent = '\u{1F4BE} 收藏单词';
+     document.getElementById('popover-status').textContent = '';
+ 
+     document.querySelectorAll('.word-token--active').forEach(el => el.classList.remove('word-token--active'));
+     wordEl.classList.add('word-token--active');
+ 
+     this.position(wordEl);
+     this.el.classList.remove('hidden');
+ 
+     if (isWordSaved(word)) {
+       saveBtn.className = 'btn-save-word btn-save-word--saved';
+       saveBtn.textContent = '\u2705 已收藏';
+     }
+ 
+     const data = await fetchWordDefinition(word);
+     this.renderData(data);
+   },
+ 
+   renderData(data) {
+     if (!data) return;
+     if (data.phonetic) document.getElementById('popover-phonetic').textContent = data.phonetic;
+     if (data.translation) {
+       document.getElementById('popover-translation').textContent = data.translation;
+       document.getElementById('popover-section-trans').style.display = 'block';
+     } else {
+       document.getElementById('popover-translation').textContent = '暂无释义';
+     }
+     let example = data.example || '';
+     if (example) {
+       document.getElementById('popover-example').textContent = example;
+       document.getElementById('popover-section-example').style.display = 'block';
+     }
+ 
+     if (isWordSaved(data.word)) {
+       const btn = document.getElementById('btn-save-word');
+       btn.className = 'btn-save-word btn-save-word--saved';
+       btn.textContent = '\u2705 已收藏';
+     }
+     if (this.currentWord) this.position(this.currentWord);
+   },
+ 
+   position(wordEl) {
+     const rect = wordEl.getBoundingClientRect();
+     const popoverRect = this.el.getBoundingClientRect();
+     const scrollY = window.scrollY;
+     let top = rect.bottom + 8 + scrollY;
+     let left = rect.left;
+     if (left + popoverRect.width > window.innerWidth - 16)
+       left = Math.max(16, window.innerWidth - popoverRect.width - 16);
+     if (rect.bottom + popoverRect.height > window.innerHeight - 16)
+       top = rect.top - popoverRect.height - 8 + scrollY;
+     this.el.style.top = top + 'px';
+     this.el.style.left = left + 'px';
+     const arrow = document.getElementById('popover-arrow');
+     const wordCenter = rect.left + rect.width / 2;
+     const arrowLeft = Math.max(12, Math.min(wordCenter - left - 6, popoverRect.width - 24));
+     arrow.style.left = arrowLeft + 'px';
+     const showAbove = rect.bottom + popoverRect.height > window.innerHeight - 16;
+     arrow.style.top = showAbove ? (popoverRect.height - 1) + 'px' : '-7px';
+     arrow.style.transform = showAbove ? 'rotate(225deg)' : 'rotate(45deg)';
+   },
+ 
+   hide() {
+     this.isVisible = false;
+     this.el.classList.add('hidden');
+     document.querySelectorAll('.word-token--active').forEach(el => el.classList.remove('word-token--active'));
+     this.currentWord = null;
+   },
+ 
+   toggleSave() {
+     const word = this.currentText;
+     if (!word) return;
+     const btn = document.getElementById('btn-save-word');
+     if (isWordSaved(word)) {
+       removeOneWord(word);
+       btn.className = 'btn-save-word';
+       btn.textContent = '\u{1F4BE} 收藏单词';
+       showNotification(`已取消收藏 "${word}"`);
+     } else {
+       const context = getWordContext(word);
+       const phonetic = document.getElementById('popover-phonetic').textContent;
+       const translation = document.getElementById('popover-translation').textContent;
+       const definition = translation || '';
+       saveWord({ word, phonetic, translation, definition, context });
+       btn.className = 'btn-save-word btn-save-word--saved';
+       btn.textContent = '\u2705 已收藏';
+       showNotification(`已收藏 "${word}"`);
+       markWordSaved(word, true);
+     }
+     updateVocabBadge();
+   },
+ };
+ 
+ /* ========================================================
+    6. Article Renderer
+    ======================================================== */
+ function parseArticle(text) {
+   const rawParagraphs = text.split(/\n\s*\n/).filter(p => p.trim());
+   return rawParagraphs.map(para => ({
+     raw: para,
+     tokens: tokenize(para),
+     sentences: splitSentences(para),
+   }));
+ }
+ 
+ function buildSentenceRanges(tokens, sentences) {
+   const ranges = [];
+   let searchFrom = 0;
+   for (const sent of sentences) {
+     const sentChars = sent.split('');
+     let bestStart = -1, bestEnd = -1;
+     // Find the range of tokens that best matches this sentence
+     for (let i = 0; i < tokens.length; i++) {
+       let matchLen = 0;
+       let ti = i, si = 0;
+       while (ti < tokens.length && si < sentChars.length) {
+         const tChars = tokens[ti].text.split('');
+         let tci = 0;
+         while (tci < tChars.length && si < sentChars.length) {
+           if (tChars[tci] === sentChars[si]) { tci++; si++; }
+           else break;
+         }
+         if (tci > 0) { matchLen += tci; ti++; }
+         else break;
+       }
+       if (matchLen > sent.length * 0.7) {
+         bestStart = i;
+         bestEnd = ti - 1;
+         break;
+       }
+     }
+     if (bestStart >= 0) ranges.push({ start: bestStart, end: bestEnd });
+   }
+   return ranges;
+ }
+ 
+ function renderArticle(paragraphs) {
+   const container = document.getElementById('article-content');
+   container.innerHTML = '';
+   STATE.article = paragraphs;
+ 
+   paragraphs.forEach((para, pi) => {
+     const pEl = document.createElement('div');
+     pEl.className = 'paragraph';
+     pEl.dataset.paragraphIndex = pi;
+     const sentRanges = buildSentenceRanges(para.tokens, para.sentences);
+ 
+     let sentIdx = 0;
+     let inSentence = false;
+     let sentBlock = null;
+ 
+     para.tokens.forEach((token, ti) => {
+       if (!inSentence && sentRanges[sentIdx] && ti >= sentRanges[sentIdx].start) {
+         inSentence = true;
+         sentBlock = document.createElement('span');
+         sentBlock.className = 'sentence-block';
+         sentBlock.dataset.sentenceIndex = sentIdx;
+         sentBlock.dataset.paragraphIndex = pi;
+         pEl.appendChild(sentBlock);
+       }
+ 
+       if (token.type === 'word') {
+         const span = document.createElement('span');
+         span.className = 'word-token';
+         span.textContent = token.text;
+         span.dataset.word = token.text;
+         span.dataset.paragraphIndex = pi;
+         span.dataset.tokenIdx = ti;
+         if (isWordSaved(token.text)) span.classList.add('word-token--saved');
+         span.addEventListener('click', (e) => {
+           e.stopPropagation();
+           popover.show(span, token.text);
+         });
+         if (sentBlock) sentBlock.appendChild(span);
+       } else if (token.type === 'space') {
+         const s = document.createElement('span');
+         s.className = 'token-space';
+         s.textContent = token.text;
+         if (sentBlock) sentBlock.appendChild(s);
+         else pEl.appendChild(s);
+       } else {
+         const s = document.createElement('span');
+         s.className = 'token-punct';
+         s.textContent = token.text;
+         if (sentBlock) sentBlock.appendChild(s);
+         else pEl.appendChild(s);
+       }
+ 
+       if (inSentence && sentRanges[sentIdx] && ti >= sentRanges[sentIdx].end) {
+         inSentence = false;
+         var speakBtn = document.createElement('button');
+         speakBtn.className = 'speak-btn speak-btn--sentence';
+         speakBtn.textContent = '🔊';
+         speakBtn.title = '朗读句子';
+         var sentTxt = sentBlock.textContent.trim();
+         speakBtn.addEventListener('click', function(e) { e.stopPropagation(); speakText(sentTxt); });
+         sentBlock.appendChild(speakBtn);
+         var transBtn = document.createElement('button');
+         transBtn.className = 'speak-btn speak-btn--sentence trans-btn--sentence';
+         transBtn.textContent = '🌐';
+         transBtn.title = '翻译句子';
+         transBtn.addEventListener('click', function(e) {
+           e.stopPropagation();
+           if (sentTxt) {
+             if (transDiv.dataset.translated) {
+               transDiv.classList.toggle('hidden');
+             } else {
+               transDiv.classList.remove('hidden');
+               transDiv.innerHTML = '<span class="loading-spinner"></span> 翻译中...';
+               translateSentence(sentTxt).then(function(t) {
+                 if (t) { transDiv.textContent = t; transDiv.dataset.translated = '1'; }
+                 else { transDiv.textContent = '⚠ 翻译失败'; }
+               });
+             }
+           }
+         });
+         sentBlock.appendChild(transBtn);
+         const transDiv = document.createElement('div');
+         transDiv.className = 'sentence-translation hidden';
+         transDiv.dataset.sentenceIndex = sentIdx;
+         transDiv.dataset.paragraphIndex = pi;
+         pEl.appendChild(transDiv);
+         sentIdx++;
+         sentBlock = null;
+       }
+     });
+ 
+     container.appendChild(pEl);
+   });
+ 
+   const totalWords = paragraphs.reduce((sum, p) => sum + p.tokens.filter(t => t.type === 'word').length, 0);
+   const totalSents = paragraphs.reduce((sum, p) => sum + p.sentences.length, 0);
+   document.getElementById('reader-info').textContent = `${totalWords} 词 · ${totalSents} 句`;
+   updateTranslateButton();
+ }
+ 
+ /* ========================================================
+    7. Translation Engine
+    ======================================================== */
+ async function toggleTranslation(active) {
+   STATE.translateActive = active;
+   const btn = document.getElementById('btn-translate');
+   const transEls = document.querySelectorAll('.sentence-translation');
+ 
+   if (!active) {
+     transEls.forEach(el => el.classList.add('hidden'));
+     btn.classList.remove('toolbar-btn-active');
+     btn.innerHTML = '<span class="btn-icon">\u{1F310}</span><span class="btn-label">翻译</span>';
+     return;
+   }
+ 
+   btn.classList.add('toolbar-btn-active');
+   btn.innerHTML = '<span class="btn-icon">\u{1F310}</span><span class="btn-label">隐藏翻译</span>';
+ 
+   const sentences = [];
+   document.querySelectorAll('.sentence-block').forEach(block => {
+     const pIdx = parseInt(block.dataset.paragraphIndex);
+     const sIdx = parseInt(block.dataset.sentenceIndex);
+     const text = block.textContent.trim();
+     if (text) sentences.push({ pIdx, sIdx, text });
+   });
+ 
+   for (const { pIdx, sIdx, text } of sentences) {
+     const transEl = document.querySelector(
+       `.sentence-translation[data-paragraph-index="${pIdx}"][data-sentence-index="${sIdx}"]`
+     );
+     if (!transEl) continue;
+     transEl.classList.remove('hidden');
+     if (transEl.dataset.translated) continue;
+     transEl.innerHTML = '<span class="loading-spinner"></span> 翻译中...';
+     try {
+       const translation = await translateSentence(text);
+       transEl.textContent = translation || '\u26A0 翻译失败（请检查 API 配置）';
+       if (translation) transEl.dataset.translated = '1';
+     } catch (_) { transEl.textContent = '\u26A0 翻译失败'; }
+     await delay(350);
+   }
+ }
+ 
+function updateTranslateButton() {
+  const btn = document.getElementById('btn-translate');
+  btn.disabled = false;
+  btn.title = '\u663E\u793A/\u9690\u85CF\u6574\u7BC7\u7FFB\u8BD1';
+}
+ 
+ /* ========================================================
+    8. Vocabulary Manager
+    ======================================================== */
+ function getVocabulary() {
+   try { return JSON.parse(localStorage.getItem(STORAGE_KEYS.vocab)) || []; } catch (_) { return []; }
+ }
+ function saveVocabulary(vocab) { localStorage.setItem(STORAGE_KEYS.vocab, JSON.stringify(vocab)); }
+ 
+ function saveWord({ word, phonetic, translation, definition, context }) {
+   const vocab = getVocabulary();
+   vocab.unshift({
+     id: 'v_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+     word: word.toLowerCase(), phonetic: phonetic || '', translation: translation || '',
+     definition: definition || '', context: context || '', savedAt: Date.now(),
+   });
+   saveVocabulary(vocab);
+   renderVocabList();
+ }
+ 
+ function removeOneWord(wordOrId) {
+   let vocab = getVocabulary();
+   const idx = vocab.findIndex(v => v.word === wordOrId.toLowerCase() || v.id === wordOrId);
+   if (idx < 0) return;
+   vocab.splice(idx, 1);
+   saveVocabulary(vocab);
+   renderVocabList();
+   const wordLower = typeof wordOrId === 'string' && wordOrId.includes('_') ? null : wordOrId.toLowerCase();
+   if (wordLower) {
+     document.querySelectorAll(`.word-token[data-word="${wordLower}"]`).forEach(el => {
+       if (!getVocabulary().some(v => v.word === wordLower)) el.classList.remove('word-token--saved');
+     });
+   }
+ }
+ 
+ function isWordSaved(word) {
+   return getVocabulary().some(v => v.word === word.toLowerCase());
+ }
+ 
+ function getWordContext(word) {
+   const els = document.querySelectorAll(`.word-token[data-word="${word.toLowerCase()}"]`);
+   if (els.length === 0) return '';
+   const sentBlock = els[0].closest('.sentence-block');
+   return sentBlock ? sentBlock.textContent.trim().slice(0, 200) : '';
+ }
+ 
+ function markWordSaved(word, saved) {
+   document.querySelectorAll(`.word-token[data-word="${word.toLowerCase()}"]`).forEach(el => {
+     el.classList.toggle('word-token--saved', saved);
+   });
+ }
+ 
+ function clearAllVocab() {
+   if (!confirm('\u786E\u5B9A\u8981\u6E05\u7A7A\u5168\u90E8\u751F\u8BCD\u5417\uFF1F\u6B64\u64CD\u4F5C\u4E0D\u53EF\u64A4\u9500\u3002')) return;
+   saveVocabulary([]);
+   document.querySelectorAll('.word-token--saved').forEach(el => el.classList.remove('word-token--saved'));
+   renderVocabList();
+   updateVocabBadge();
+   showNotification('\u5DF2\u6E05\u7A7A\u5168\u90E8\u751F\u8BCD');
+ }
+ 
+ function exportVocab() {
+   const vocab = getVocabulary();
+   if (vocab.length === 0) { showNotification('\u751F\u8BCD\u672C\u4E3A\u7A7A'); return; }
+   let text = 'English Reader - \u751F\u8BCD\u672C\u5BFC\u51FA\n' + '='.repeat(40) + '\n\n';
+   vocab.forEach((v, i) => {
+     text += `${i+1}. ${v.word}`;
+     if (v.phonetic) text += `  [${v.phonetic}]`;
+     text += '\n';
+     if (v.translation) text += `   \u7FFB\u8BD1: ${v.translation}\n`;
+     if (v.definition) text += `  \u91CA\u4E49: ${v.definition}\n`;
+     if (v.context) text += `  \u539F\u6587: "${v.context}"\n`;
+     text += `  \u6536\u85CF\u65E5\u671F: ${formatDate(v.savedAt)}\n\n`;
+   });
+   const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+   const url = URL.createObjectURL(blob);
+   const a = document.createElement('a');
+   a.href = url; a.download = `vocabulary_${formatDate(Date.now())}.txt`; a.click();
+   URL.revokeObjectURL(url);
+   showNotification('\u5BFC\u51FA\u6210\u529F');
+ }
+ 
+ function updateVocabBadge() {
+   const count = getVocabulary().length;
+   const badge = document.getElementById('vocab-badge');
+   badge.textContent = count;
+   badge.style.display = count > 0 ? 'inline-flex' : 'none';
+ }
+ 
+ function renderVocabList(filter) {
+   const container = document.getElementById('vocab-list');
+   let vocab = getVocabulary();
+   if (filter) { const q = filter.toLowerCase(); vocab = vocab.filter(v => v.word.includes(q) || v.translation.includes(q)); }
+   if (vocab.length === 0) {
+     container.innerHTML = `<div class="vocab-empty"><span class="vocab-empty-icon">${filter ? '\uD83D\uDD0D' : '\uD83D\uDCED'}</span>${filter ? '\u6CA1\u6709\u5339\u914D\u7684\u5355\u8BCD' : '\u8FD8\u6CA1\u6709\u6536\u85CF\u4EFB\u4F55\u5355\u8BCD<br>\u9605\u8BFB\u6587\u7AE0\u65F6\u70B9\u51FB\u5355\u8BCD\u5373\u53EF\u6536\u85CF'}</div>`;
+     document.getElementById('vocab-count').textContent = '0';
+     return;
+   }
+   document.getElementById('vocab-count').textContent = vocab.length;
+   container.innerHTML = vocab.map(v => {
+     const ctx = v.context ? v.context.slice(0, 80) + (v.context.length > 80 ? '...' : '') : '';
+     return `<div class="vocab-item" data-id="${v.id}">
+       <div class="vocab-item-top">
+         <button class="speak-btn speak-btn--vocab" onclick="speakText('${escapeHtml(v.word)}')" title="朗读">🔊</button>
+         <span class="vocab-item-word" style="cursor:pointer">${escapeHtml(v.word)}</span>
+         ${v.phonetic ? `<span class="vocab-item-phonetic">${escapeHtml(v.phonetic)}</span>` : ''}
+         <span class="vocab-item-translation">${escapeHtml(v.translation || '')}</span>
+         <button class="vocab-item-delete" data-id="${v.id}" title="删除">\u2715</button>
+       </div>
+       ${ctx ? `<div class="vocab-item-context">"${escapeHtml(ctx)}"</div>` : ''}
+       <div class="vocab-item-date">${formatDate(v.savedAt)}</div>
+     </div>`;
+   }).join('');
+   container.querySelectorAll('.vocab-item-delete').forEach(btn => {
+     btn.addEventListener('click', (e) => { e.stopPropagation(); removeOneWord(btn.dataset.id); updateVocabBadge(); });
+   });
+  container.querySelectorAll(".vocab-item-word").forEach(el => {
+    el.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const word = el.textContent.trim();
+      popover.show(el, word);
+    });
+  });
+ }
+ 
+ /* ========================================================
+    9. Settings Manager
+    ======================================================== */
+ function openSettings() {
+   document.getElementById('youdao-appkey').value = CONFIG.youdaoAppKey || '';
+   document.getElementById('youdao-secret').value = CONFIG.youdaoSecret || '';
+  document.getElementById('openai-key').value = CONFIG.openaiKey || '';
+  document.getElementById('openai-model').value = CONFIG.openaiModel || 'deepseek-chat';
+  document.getElementById('ai-provider').value = CONFIG.aiProvider || 'deepseek';
+   document.getElementById('target-lang').value = CONFIG.targetLang || 'zh-CHS';
+   document.getElementById('font-size-range').value = CONFIG.fontSize || 16;
+   document.getElementById('font-size-label').textContent = (CONFIG.fontSize || 16) + 'px';
+   document.getElementById('api-status').textContent = '';
+   document.getElementById('api-status').className = 'api-status';
+  document.getElementById('openai-status').textContent = '';
+  document.getElementById('openai-status').className = 'api-status';
+   document.getElementById('settings-overlay').classList.remove('hidden');
+ }
+ 
+ function closeSettings() { document.getElementById('settings-overlay').classList.add('hidden'); }
+ 
+ function saveSettings() {
+   CONFIG.youdaoAppKey = document.getElementById('youdao-appkey').value.trim();
+   CONFIG.youdaoSecret = document.getElementById('youdao-secret').value.trim();
+  CONFIG.openaiKey = document.getElementById('openai-key').value.trim();
+  CONFIG.openaiModel = document.getElementById('openai-model').value;
+  CONFIG.aiProvider = document.getElementById('ai-provider').value;
+   CONFIG.targetLang = document.getElementById('target-lang').value;
+   CONFIG.fontSize = parseInt(document.getElementById('font-size-range').value);
+   saveConfig(CONFIG);
+   document.documentElement.style.setProperty('--font-base', CONFIG.fontSize + 'px');
+   updateTranslateButton();
+   closeSettings();
+   showNotification('\u8BBE\u7F6E\u5DF2\u4FDD\u5B58');
+ }
+ 
+ async function testApiConnection() {
+   const appKey = document.getElementById('youdao-appkey').value.trim();
+   const appSecret = document.getElementById('youdao-secret').value.trim();
+   const statusEl = document.getElementById('api-status');
+   if (!appKey || !appSecret) {
+     statusEl.textContent = '\u26A0 \u8BF7\u5148\u586B\u5199 AppKey \u548C AppSecret';
+     statusEl.className = 'api-status api-status--error'; return;
+   }
+
+   statusEl.textContent = '\u23F3 \u6D4B\u8BD5\u4E2D...';
+   statusEl.className = 'api-status api-status--pending';
+   try {
+     const result = await youdaoRawTranslate('Hello', 'en', 'zh-CHS');
+     if (result && result.translation) {
+       statusEl.textContent = `\u2705 \u8FDE\u63A5\u6210\u529F\uFF01\u793A\u4F8B: "Hello" \u2192 "${result.translation[0]}"`;
+       statusEl.className = 'api-status api-status--success';
+     } else {
+       statusEl.textContent = '\u274C \u8FDE\u63A5\u5931\u8D25\uFF0C\u8BF7\u68C0\u67E5 Key \u662F\u5426\u6B63\u786E';
+       statusEl.className = 'api-status api-status--error';
+     }
+   } catch (err) {
+     statusEl.textContent = '\u274C \u8FDE\u63A5\u5931\u8D25: ' + (err.message || '\u672A\u77E5\u9519\u8BEF');
+     statusEl.className = 'api-status api-status--error';
+   }
+ }
+async function testOpenAIConnection() {
+  const key = document.getElementById('openai-key').value.trim();
+  const model = document.getElementById('openai-model').value;
+  const statusEl = document.getElementById('openai-status');
+  if (!key || !key.startsWith('sk-')) {
+    statusEl.textContent = '⚠ 请填写有效的 API Key';
+    statusEl.className = 'api-status api-status--error'; return;
+  }
+  statusEl.textContent = '⏳ 测试中...';
+  statusEl.className = 'api-status api-status--pending';
+  const sk = CONFIG.openaiKey, sm = CONFIG.openaiModel;
+  try {
+    const r = await openaiTranslate('Hello, how are you?');
+    if (r) {
+      statusEl.textContent = '✅ 连接成功! "Hello?" → "' + r + '"';
+      statusEl.className = 'api-status api-status--success';
+    } else {
+      statusEl.textContent = '❌ 连接失败';
+      statusEl.className = 'api-status api-status--error';
+    }
+  } catch (err) {
+    statusEl.textContent = '❌ 失败: ' + (err.message || '未知');
+    statusEl.className = 'api-status api-status--error';
+  }
+}
+ 
+ /* ========================================================
+    10. UI Controllers
+    ======================================================== */
+ function openVocab() {
+   renderVocabList(document.getElementById('vocab-search').value);
+   document.getElementById('vocab-overlay').classList.remove('hidden');
+ }
+ function closeVocab() { document.getElementById('vocab-overlay').classList.add('hidden'); }
+ 
+ function startReading() {
+   const input = document.getElementById('article-input');
+   const text = input.value.trim();
+   if (!text) { showNotification('\u8BF7\u5148\u7C98\u8D34\u82F1\u6587\u6587\u7AE0'); input.focus(); return; }
+   const paragraphs = parseArticle(text);
+   renderArticle(paragraphs);
+   document.getElementById('input-section').classList.add('hidden');
+   document.getElementById('reader-section').classList.remove('hidden');
+   showNotification('\u5F00\u59CB\u9605\u8BFB\uFF01\u70B9\u51FB\u5355\u8BCD\u67E5\u770B\u91CA\u4E49\uFF0C\u70B9\u51FB \uD83C\uDF10 \u7FFB\u8BD1\u6574\u7BC7');
+ }
+ 
+ function newArticle() {
+   popover.hide();
+   document.getElementById('reader-section').classList.add('hidden');
+   document.getElementById('input-section').classList.remove('hidden');
+   STATE.article = null; STATE.sentences = []; STATE.translateActive = false;
+   const btn = document.getElementById('btn-translate');
+   btn.classList.remove('toolbar-btn-active');
+   btn.innerHTML = '<span class="btn-icon">\u{1F310}</span><span class="btn-label">\u7FFB\u8BD1</span>';
+ }
+ 
+ /* ========================================================
+    11. Initialization
+    ======================================================== */
+
+/* Article Manager */
+function getArticles() {
+  try { return JSON.parse(localStorage.getItem('reader_articles')) || []; } catch (_) { return []; }
+}
+function saveArticleList(arts) { localStorage.setItem('reader_articles', JSON.stringify(arts)); }
+
+function saveCurrentArticle() {
+  const articleText = document.getElementById('article-input').value.trim();
+  if (!articleText) { showNotification('没有内容可保存'); return; }
+  const arts = getArticles();
+  const title = articleText.replace(/\n/g, ' ').trim().slice(0, 50) + (articleText.length > 50 ? '...' : '');
+  const exist = arts.findIndex(a => a.text === articleText);
+  if (exist >= 0) { arts[exist].savedAt = Date.now(); saveArticleList(arts); showNotification('已更新: ' + title); return; }
+  arts.unshift({ id: 'a_' + Date.now() + '_' + Math.random().toString(36).slice(2,6), title, text: articleText, savedAt: Date.now() });
+  saveArticleList(arts);
+  showNotification('已保存: ' + title);
+  renderArticleList();
+}
+
+function deleteArticle(id) {
+  const arts = getArticles().filter(a => a.id !== id);
+  saveArticleList(arts); renderArticleList(); updateArticleBadge();
+}
+
+function loadArticle(id) {
+  const arts = getArticles();
+  const a = arts.find(a => a.id === id);
+  if (!a) return;
+  popover.hide(); closeArticles();
+  document.getElementById('article-input').value = a.text;
+  document.getElementById('input-section').classList.remove('hidden');
+  document.getElementById('reader-section').classList.add('hidden');
+  showNotification('已加载: ' + a.title);
+}
+
+function renderArticleList() {
+  const container = document.getElementById('article-list');
+  const arts = getArticles();
+  if (arts.length === 0) {
+    container.innerHTML = '<div class="vocab-empty"><span class="vocab-empty-icon">📭</span>还没有保存任何文章<br>阅读时点击"保存文章"即可收藏</div>';
+    document.getElementById('article-count').textContent = '0';
+    return;
+  }
+  document.getElementById('article-count').textContent = arts.length;
+  container.innerHTML = arts.map(a => {
+    const d = new Date(a.savedAt);
+    const ds = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    const wc = a.text.split(/\s+/).filter(Boolean).length;
+    return '<div class="vocab-item" data-id="' + a.id + '">' +
+      '<div class="vocab-item-top">' +
+        '<span class="vocab-item-word" style="cursor:pointer">' + escapeHtml(a.title) + '</span>' +
+        '<span class="vocab-item-translation" style="font-weight:400;font-size:0.85rem">' + wc + ' 词</span>' +
+        '<button class="vocab-item-delete" data-id="' + a.id + '" title="删除">' + String.fromCharCode(0x2715) + '</button>' +
+      '</div>' +
+      '<div class="vocab-item-date">' + ds + '</div>' +
+    '</div>';
+  }).join('');
+  container.querySelectorAll('.vocab-item[data-id]').forEach(el => {
+    el.addEventListener('click', function() { loadArticle(this.dataset.id); });
+  });
+  container.querySelectorAll('.vocab-item-delete').forEach(btn => {
+    btn.addEventListener('click', function(e) { e.stopPropagation(); deleteArticle(this.dataset.id); });
+  });
+}
+
+function openArticles() { renderArticleList(); document.getElementById('articles-overlay').classList.remove('hidden'); }
+function closeArticles() { document.getElementById('articles-overlay').classList.add('hidden'); }
+function updateArticleBadge() { const c = getArticles().length; }
+
+ function init() {
+   document.documentElement.style.setProperty('--font-base', (CONFIG.fontSize || 16) + 'px');
+ 
+   document.getElementById('btn-start').addEventListener('click', startReading);
+  document.getElementById('btn-clear-input').addEventListener('click', function() { document.getElementById('article-input').value = ''; document.getElementById('article-input').focus(); });
+   document.getElementById('btn-new-article').addEventListener('click', newArticle);
+   document.getElementById('btn-translate').addEventListener('click', () => {
+     toggleTranslation(!STATE.translateActive);
+   });
+   document.getElementById('btn-vocab').addEventListener('click', openVocab);
+   document.getElementById('vocab-close').addEventListener('click', closeVocab);
+   document.getElementById('vocab-overlay').addEventListener('click', (e) => { if (e.target === e.currentTarget) closeVocab(); });
+   document.getElementById('vocab-search').addEventListener('input', function() { renderVocabList(this.value); });
+   document.getElementById('btn-export').addEventListener('click', exportVocab);
+   document.getElementById('btn-clear-all').addEventListener('click', clearAllVocab);
+   document.getElementById('btn-settings').addEventListener('click', openSettings);
+   document.getElementById('settings-close').addEventListener('click', closeSettings);
+  document.getElementById('btn-articles').addEventListener('click', openArticles);
+  document.getElementById('articles-close').addEventListener('click', closeArticles);
+  document.getElementById('articles-overlay').addEventListener('click', (e) => { if (e.target === e.currentTarget) closeArticles(); });
+  document.getElementById('btn-save-article').addEventListener('click', saveCurrentArticle);
+   document.getElementById('settings-overlay').addEventListener('click', (e) => { if (e.target === e.currentTarget) closeSettings(); });
+   document.getElementById('btn-test-api').addEventListener('click', testApiConnection);
+  document.getElementById('btn-test-openai').addEventListener('click', testOpenAIConnection);
+  document.getElementById('ai-provider').addEventListener('change', function() {
+    var ms = document.getElementById('openai-model');
+    if (this.value === 'deepseek') {
+      ms.innerHTML = '<option value="deepseek-chat">DeepSeek V3</option><option value="deepseek-reasoner">DeepSeek R1</option>';
+    } else {
+      ms.innerHTML = '<option value="gpt-4o-mini">GPT-4o Mini</option><option value="gpt-4o">GPT-4o</option>';
+    }
+    if (ms.options.length > 0) ms.selectedIndex = 0;
+  });
+   document.getElementById('btn-save-settings').addEventListener('click', saveSettings);
+   document.getElementById('font-size-range').addEventListener('input', (e) => {
+     document.getElementById('font-size-label').textContent = e.target.value + 'px';
+   });
+   document.getElementById('article-input').addEventListener('keydown', (e) => {
+     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); startReading(); }
+   });
+   document.addEventListener('keydown', (e) => {
+     if (e.key === 'Escape') { closeVocab(); closeSettings(); closeArticles(); }
+   });
+ 
+   popover.init();
+   updateVocabBadge();
+   updateTranslateButton();
+   console.log('📖 English Reader initialized. Youdao configured:', isYoudaoConfigured());
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js');
+  }
+ }
+ 
+ if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+ else init();
+ </script>
+ </body>
+ </html>

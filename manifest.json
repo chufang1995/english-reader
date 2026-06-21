@@ -1,0 +1,17 @@
+ {
+   "name": "English Reader",
+   "short_name": "Eng Reader",
+   "description": "英文文章阅读器 — 点击查词、整篇翻译、生词收藏",
+   "start_url": "/",
+   "display": "standalone",
+   "background_color": "#f7f5f2",
+   "theme_color": "#4a6cf7",
+   "icons": [
+     {
+       "src": "icons/icon.svg",
+       "sizes": "any",
+       "type": "image/svg+xml",
+       "purpose": "any maskable"
+     }
+   ]
+ }
