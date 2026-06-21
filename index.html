@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="English Reader">
 <link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="icons/icon.svg">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
  <title>English Reader — 英文文章阅读器</title>
  <style>
@@ -1558,7 +1558,7 @@ function updateArticleBadge() { const c = getArticles().length; }
    updateTranslateButton();
    console.log('📖 English Reader initialized. Youdao configured:', isYoudaoConfigured());
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js');
+    navigator.serviceWorker.register('sw.js');
   }
  }
  
